@@ -338,14 +338,31 @@ void heap_dump(struct z_heap *h)
 		       (1 << i) - 1 + min_chunk_size(h), count);
 	}
 
+	uint32_t mem_used = 0;
+	uint32_t max_free = 0;
+
 	for (chunkid_t c = 0; ; c = right_chunk(h, c)) {
+		int c_size = chunk_size(h, c);
+		if (chunk_used(h, c)) {
+			mem_used += c_size;
+		} else {
+			if (chunk_size(h, c) > max_free) {
+				max_free = c_size;
+			}
+		}
 		printk("chunk %3zd: %c %3zd] %3zd [%zd\n",
 		       c, chunk_used(h, c) ? '*' : '-',
-		      left_chunk(h, c), chunk_size(h, c), right_chunk(h, c));
+		      left_chunk(h, c), c_size, right_chunk(h, c));
 		if (c == h->len) {
 			break;
 		}
 	}
+
+	uint32_t mem_free = h->len - mem_used;
+	uint32_t mem_tot = h->len;
+
+	printk("Memory usage: %u%%\n", mem_used * 100 / mem_tot);
+	printk("Memory fragmentation: %u%%\n", (mem_free - max_free) * 100 / mem_free);
 }
 
 void sys_heap_dump(struct sys_heap *heap)
